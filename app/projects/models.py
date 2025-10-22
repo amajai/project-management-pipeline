@@ -33,6 +33,9 @@ class Project(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.title} - {self.provider.capitalize()}"
+
 
 class Task(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
@@ -62,3 +65,11 @@ class Task(models.Model):
     payment_status = models.CharField(max_length=20, default="unpaid")
 
     custom_fields = models.JSONField(default=dict)
+
+    def save(self, *args, **kwargs):
+        if self.project and self.project.provider:
+            self.provider = self.project.provider
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.title} - status: ({self.status})"
