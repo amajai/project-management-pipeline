@@ -10,4 +10,5 @@ urlpatterns = [
     path("<str:space_id>/lists/", views.SpaceListsView.as_view()),
     path("<str:list_id>/tasks/", views.ListTasksView.as_view()),
     path("<str:space_id>/projects/", views.SpaceProjectsView.as_view()),
+    path("<str:list_id>/import/", views.ImportClickUpProjectView.as_view()),
 ]

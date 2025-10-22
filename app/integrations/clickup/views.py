@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 import requests
 from django.conf import settings
 from django.shortcuts import redirect
+from projects.import_pipeline import import_clickup_project
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -97,3 +98,34 @@ class SpaceProjectsView(APIView):
         )
         adapter = ClickUpAdapter(access_token)
         return Response(adapter.get_space_projects(space_id, include_closed))
+
+
+class ImportClickUpProjectView(APIView):
+    def post(self, request, list_id):
+        access_token = get_token(request)
+        adapter = ClickUpAdapter(access_token)
+
+        # list_info is project
+        list_info = adapter.get_list(list_id)
+        if not list_info:
+            return Response({"error": f"List {list_id} not found"}, status=404)
+
+        tasks = adapter.get_list_tasks(list_id)
+
+        print(list_info)
+        # Import into DB
+        project = import_clickup_project(
+            user=request.user,
+            provider="clickup",
+            external_project_id=list_id,
+            project_data=list_info,
+            task_data=tasks,
+        )
+
+        return Response(
+            {
+                "message": f"List {list_info['name']} imported",
+                "project_id": project.id,
+                "task_count": project.tasks.count(),
+            }
+        )
