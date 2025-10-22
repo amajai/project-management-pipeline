@@ -9,6 +9,14 @@ class ClickUpAdapter:
         self.access_token = access_token
         self.headers = {"Authorization": f"Bearer {self.access_token}"}
 
+    def get_list(self, list_id):
+        resp = requests.get(
+            f"{self.BASE_URL}/list/{list_id}",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
     def fetch_space_lists(self, space_id: str):
         resp = requests.get(
             f"{self.BASE_URL}/space/{space_id}/list", headers=self.headers
