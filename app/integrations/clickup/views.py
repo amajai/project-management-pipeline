@@ -3,10 +3,12 @@ from urllib.parse import urlencode
 import requests
 from django.conf import settings
 from django.shortcuts import redirect
-from projects.import_pipeline import import_clickup_project
+from projects.import_pipeline import import_project
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from integrations.factory import get_adapter
 
 from .adapter import ClickUpAdapter
 
@@ -55,13 +57,6 @@ def get_token(request):
     return auth_header
 
 
-class ClickUpTeamsView(APIView):
-    def get(self, request):
-        resp = requests.get("https://api.clickup.com/api/v2/team")
-        resp.raise_for_status()
-        return Response(resp.json())
-
-
 class ClickUpUserView(APIView):
     def get(self, request):
         access_token = get_token(request)
@@ -80,51 +75,31 @@ class SpaceListsView(APIView):
         return Response(adapter.get_space_lists(space_id))
 
 
-class ListTasksView(APIView):
-    def get(self, request, list_id):
-        access_token = get_token(request)
-        include_closed = (
-            request.query_params.get("include_closed", "true").lower() == "true"
-        )
-        adapter = ClickUpAdapter(access_token)
-        return Response(adapter.get_list_tasks(list_id, include_closed))
-
-
-class SpaceProjectsView(APIView):
-    def get(self, request, space_id):
-        access_token = get_token(request)
-        include_closed = (
-            request.query_params.get("include_closed", "true").lower() == "true"
-        )
-        adapter = ClickUpAdapter(access_token)
-        return Response(adapter.get_space_projects(space_id, include_closed))
-
-
 class ImportClickUpProjectView(APIView):
     def post(self, request, list_id):
         access_token = get_token(request)
-        adapter = ClickUpAdapter(access_token)
 
-        # list_info is project
-        list_info = adapter.get_list(list_id)
-        if not list_info:
+        adapter = get_adapter("clickup", access_token)
+
+        project_data = adapter.transform_project(adapter.get_project(list_id))
+        task_data = [adapter.transform_task(t) for t in adapter.get_tasks(list_id)]
+
+        if not project_data:
             return Response({"error": f"List {list_id} not found"}, status=404)
 
-        tasks = adapter.get_list_tasks(list_id)
-
-        print(list_info)
+        print(project_data)
         # Import into DB
-        project = import_clickup_project(
+        project = import_project(
             user=request.user,
             provider="clickup",
-            external_project_id=list_id,
-            project_data=list_info,
-            task_data=tasks,
+            external_project_id=project_data["id"],
+            project_data=project_data,
+            task_data=task_data,
         )
 
         return Response(
             {
-                "message": f"List {list_info['name']} imported",
+                "message": f"List {project_data['title']} imported",
                 "project_id": project.id,
                 "task_count": project.tasks.count(),
             }
