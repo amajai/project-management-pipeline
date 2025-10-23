@@ -5,18 +5,20 @@ from projects.models import Project, Task
 User = get_user_model()
 
 
-def import_project(user, provider, external_project_id, project_data, task_data):
+def import_project(
+    user, provider, external_project_id, project_data, task_data, connection=None
+):
     if user.is_anonymous:  # TODO: Assign users to project
         user = User.objects.first()
 
     project, created = Project.objects.get_or_create(
         client=user,
-        provider=provider,
         external_project_id=external_project_id,
         defaults={
             "title": project_data["title"],
             "baseline_task_ids": [t["id"] for t in task_data],
             "baseline_task_count": len(task_data),
+            "connection": connection,
         },
     )
 

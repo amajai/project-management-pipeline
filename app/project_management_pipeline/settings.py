@@ -139,6 +139,8 @@ CLICKUP_AUTH_URL = "https://app.clickup.com/api"
 CLICKUP_TOKEN_URL = f"{CLICKUP_BASE_URL}/oauth/token"
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": [],
 }
