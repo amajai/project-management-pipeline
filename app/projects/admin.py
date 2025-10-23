@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Project, Task
+from .models import Project, ProviderConnection, Task
 
 
 @admin.register(Project)
@@ -8,29 +8,15 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "title",
-        "provider",
         "client",
+        "connection",
         "sync_mode",
         "scope_locked",
         "baseline_task_count",
         "created_at",
     )
-    list_filter = ("provider", "sync_mode", "scope_locked", "created_at")
-    search_fields = (
-        "title",
-        "external_project_id",
-        "client__username",
-        "client__email",
-    )
-    readonly_fields = ("baseline_task_ids", "baseline_task_count", "created_at")
-
-    fieldsets = (
-        (
-            "Project Info",
-            {"fields": ("title", "client", "provider", "external_project_id")},
-        ),
-        ("Sync Settings", {"fields": ("sync_mode", "scope_locked")}),
-    )
+    list_filter = ("sync_mode", "scope_locked")
+    search_fields = ("title", "external_project_id", "client__username")
 
 
 @admin.register(Task)
@@ -41,27 +27,33 @@ class TaskAdmin(admin.ModelAdmin):
         "status",
         "priority",
         "project",
-        "provider",
+        "external_id",
         "in_baseline",
         "scope_approved",
         "assigned_freelancer",
         "payment_status",
     )
-    list_filter = (
-        "status",
-        "priority",
+    list_filter = ("status", "priority", "in_baseline", "scope_approved")
+    search_fields = ("title", "external_id", "project__title")
+
+
+@admin.register(ProviderConnection)
+class ProviderConnectionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
         "provider",
-        "in_baseline",
-        "scope_approved",
-        "payment_status",
+        "masked_access_token",
+        "created_at",
+        "updated_at",
     )
-    search_fields = (
-        "title",
-        "description",
-        "external_id",
-        "external_url",
-        "assigned_freelancer__username",
-        "assigned_freelancer__email",
-    )
-    autocomplete_fields = ("project", "assigned_freelancer")
-    readonly_fields = ("external_id", "external_url", "custom_fields")
+    list_filter = ("provider",)
+    search_fields = ("user__username", "provider")
+
+    # Custom display method
+    def masked_access_token(self, obj):
+        if not obj.access_token:
+            return "-"
+        return f"{obj.access_token[:6]}...{obj.access_token[-4:]}"
+
+    masked_access_token.short_description = "Access Token"

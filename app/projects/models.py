@@ -4,15 +4,30 @@ from django.db import models
 User = get_user_model()
 
 
-class Project(models.Model):
-    PROVIDERS = [
-        ("clickup", "ClickUp"),
-        ("jira", "Jira"),
-        ("asana", "Asana"),
-        ("trello", "Trello"),
-        ("monday", "Monday"),
-    ]
+PROVIDERS = [
+    ("clickup", "ClickUp"),
+    ("jira", "Jira"),
+]
 
+
+class ProviderConnection(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="provider_connections",
+    )
+    provider = models.CharField(max_length=20, choices=PROVIDERS)
+    access_token = models.TextField(blank=True, null=True)
+    refresh_token = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.provider}"
+
+
+class Project(models.Model):
     SYNC_MODES = [
         ("import_once", "Import Once"),
         ("read_only", "Read Only"),
@@ -20,7 +35,13 @@ class Project(models.Model):
     ]
 
     client = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects")
-    provider = models.CharField(max_length=20, choices=PROVIDERS)
+    connection = models.ForeignKey(
+        "ProviderConnection",
+        on_delete=models.CASCADE,
+        related_name="projects",
+        null=True,
+        blank=True,
+    )
     external_project_id = models.CharField(max_length=255)
     title = models.CharField(max_length=255)
     sync_mode = models.CharField(
@@ -32,9 +53,10 @@ class Project(models.Model):
     baseline_task_count = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.title} - {self.provider.capitalize()}"
+        return f"{self.title} - {self.connection}"
 
 
 class Task(models.Model):
@@ -44,7 +66,6 @@ class Task(models.Model):
     status = models.CharField(max_length=50)
     priority = models.CharField(max_length=50, null=True, blank=True)
 
-    provider = models.CharField(max_length=20)
     external_id = models.CharField(max_length=255)
     external_url = models.URLField(blank=True, null=True)
 
@@ -64,12 +85,7 @@ class Task(models.Model):
     time_tracked = models.FloatField(default=0)
     payment_status = models.CharField(max_length=20, default="unpaid")
 
-    custom_fields = models.JSONField(default=dict)
-
-    def save(self, *args, **kwargs):
-        if self.project and self.project.provider:
-            self.provider = self.project.provider
-        super().save(*args, **kwargs)
+    custom_fields = models.JSONField(default=dict, null=True, blank=True)
 
     def __str__(self):
         return f"{self.title} - status: ({self.status})"
