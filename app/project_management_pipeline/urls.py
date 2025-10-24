@@ -4,6 +4,10 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 
 class DBCheckView(APIView):
@@ -36,4 +40,7 @@ urlpatterns = [
     path("db-check/", DBCheckView.as_view()),
     path("health/", HealthCheckView.as_view()),
     path("clickup/", include("integrations.clickup.urls")),
+    path("jira/", include("integrations.jira.urls")),
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]

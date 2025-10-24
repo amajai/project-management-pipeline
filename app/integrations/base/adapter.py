@@ -2,9 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class BaseAdapter(ABC):
-    def __init__(self, access_token: str):
-        self.access_token = access_token
-
     @abstractmethod
     def get_project(self, project_id: str):
         """Fetch metadata for a single project/list/board/etc."""

@@ -7,6 +7,9 @@ from integrations.base.adapter import BaseAdapter
 class ClickUpAdapter(BaseAdapter):
     BASE_URL = settings.CLICKUP_BASE_URL
 
+    def __init__(self, connection):
+        self.access_token = connection.access_token
+
     def _headers(self):
         return {"Authorization": f"Bearer {self.access_token}"}
 

@@ -132,15 +132,25 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CLICKUP_BASE_URL = "https://api.clickup.com/api/v2"
 CLICKUP_CLIENT_ID = os.environ.get("CLICKUP_CLIENT_ID")
 CLICKUP_CLIENT_SECRET = os.environ.get("CLICKUP_CLIENT_SECRET")
-REDIRECT_URI = os.environ.get(
-    "REDIRECT_URI", "http://localhost:8000/clickup/auth/callback"
+CLICKUP_REDIRECT_URI = os.environ.get(
+    "CLICKUP_REDIRECT_URI", "http://localhost:8000/clickup/auth/callback"
 )
 CLICKUP_AUTH_URL = "https://app.clickup.com/api"
 CLICKUP_TOKEN_URL = f"{CLICKUP_BASE_URL}/oauth/token"
 
+# Jira settings
+JIRA_CLIENT_ID = os.environ.get("JIRA_CLIENT_ID")
+JIRA_CLIENT_SECRET = os.environ.get("JIRA_CLIENT_SECRET")
+JIRA_REDIRECT_URI = os.environ.get(
+    "JIRA_REDIRECT_URI", "http://localhost:8000/jira/auth/callback"
+)
+JIRA_AUTH_URL = "https://auth.atlassian.com/authorize"
+JIRA_TOKEN_URL = "https://auth.atlassian.com/oauth/token"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [],
 }

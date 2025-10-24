@@ -8,12 +8,11 @@ from django.shortcuts import redirect
 from projects.import_pipeline import import_project
 from projects.models import ProviderConnection
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from integrations.factory import get_adapter
-
-from .adapter import ClickUpAdapter
 
 User = get_user_model()
 
@@ -27,7 +26,7 @@ class ClickUpLoginView(APIView):
 
         params = {
             "client_id": settings.CLICKUP_CLIENT_ID,
-            "redirect_uri": settings.REDIRECT_URI,
+            "redirect_uri": settings.CLICKUP_REDIRECT_URI,
             "state": state,
         }
         url = f"{settings.CLICKUP_AUTH_URL}?{urlencode(params)}"
@@ -90,48 +89,16 @@ class ClickUpCallbackView(APIView):
         )
 
 
-def get_token(request, provider="clickup"):
-    if request.user and request.user.is_authenticated:
-        connection = ProviderConnection.objects.filter(
-            user=request.user, provider=provider
-        ).first()
+class ClickUpImportProjectView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        if connection and connection.access_token:
-            return connection.access_token
-        else:
-            return Response(
-                {"error": "No ClickUp connection found for this user"}, status=400
-            )
-
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        return auth_header.split(" ")[1]
-
-    raise AuthenticationFailed("No access token found")
-
-
-class ClickUpUserView(APIView):
-    def get(self, request):
-        access_token = get_token(request)
-        resp = requests.get(
-            "https://api.clickup.com/api/v2/user",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        resp.raise_for_status()
-        return Response(resp.json())
-
-
-class SpaceListsView(APIView):
-    def get(self, request, space_id):
-        access_token = get_token(request)
-        adapter = ClickUpAdapter(access_token)
-        return Response(adapter.get_space_lists(space_id))
-
-
-class ImportClickUpProjectView(APIView):
     def post(self, request, list_id):
-        access_token = get_token(request, provider="clickup")
-        adapter = get_adapter("clickup", access_token)
+        connection = ProviderConnection.objects.filter(
+            user=request.user, provider="clickup"
+        ).first()
+        if not connection:
+            return Response({"error": "No Clickup connection"}, status=400)
+        adapter = get_adapter("clickup", connection)
 
         project_data = adapter.transform_project(adapter.get_project(list_id))
         task_data = [adapter.transform_task(t) for t in adapter.get_tasks(list_id)]
@@ -139,14 +106,9 @@ class ImportClickUpProjectView(APIView):
         if not project_data:
             return Response({"error": f"List {list_id} not found"}, status=404)
 
-        connection = ProviderConnection.objects.filter(
-            user=request.user, provider="clickup"
-        ).first()
-
         # Import into DB
         project = import_project(
             user=request.user,
-            provider="clickup",
             external_project_id=project_data["id"],
             project_data=project_data,
             task_data=task_data,
