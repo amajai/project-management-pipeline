@@ -22,6 +22,7 @@ class ProviderConnection(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    metadata = models.JSONField(default=dict, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user} - {self.provider}"
