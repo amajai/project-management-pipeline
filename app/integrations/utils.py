@@ -12,9 +12,7 @@ def get_token(request, provider):
         if connection and connection.access_token:
             return connection.access_token
         else:
-            return Response(
-                {"error": "No ClickUp connection found for this user"}, status=400
-            )
+            return Response({"error": "No connection found for this user"}, status=400)
 
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
